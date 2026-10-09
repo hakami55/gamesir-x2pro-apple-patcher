@@ -14,12 +14,14 @@ An experimental Android app to install the Apple compatibility patch or restore 
 
 ## Apple compatibility
 
-| OS | Reported result |
+| Device | Reported result |
 | --- | --- |
-| iOS / iPadOS 26 | Works |
-| iOS 27 | Does not work |
+| iPhone 15 Pro Max | Works |
+| iPhone 17 Pro | Works |
+| iPhone 16 / 16 Plus / 16 Pro | Does not work |
+| iPad (tested unit) | Works |
 
-Results are from tested devices; compatibility may vary.
+Reported tests only; compatibility may vary. iOS version alone does not explain the results.
 
 ## How to use
 

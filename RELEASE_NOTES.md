@@ -8,10 +8,10 @@ Download **GameSir-X2-Pro-Patcher-0.1.0-alpha1.apk** below. Android 8.0+ with US
 - Write + verify for every block; normal-mode verification after restart.
 - Explicit restore option and diagnostic export.
 - 10 automated protocol tests passed. The Android app restored official firmware and reinstalled the patch on an Odin3 without requesting root. The Odin3 itself is rooted; a clean unrooted host has not yet been tested.
-- Report export tested. [Full validation details](https://github.com/hakami55/gamesir-x2pro-apple-patcher/blob/v0.1.0-alpha1/docs/VALIDATION.md).
+- Report export tested. [Full validation details and updated compatibility reports](https://github.com/hakami55/gamesir-x2pro-apple-patcher/blob/main/docs/VALIDATION.md).
 
 **Experimental firmware can leave a controller unusable if an update fails.** Force-stop GameSir and other updaters in Android App info first. Keep the same controller connected throughout and approve USB permission again when prompted. Restore is a known manufacturer MAIN image, not a complete controller backup. Do not use on 144-series controllers or other GameSir models.
 
-Patch reports: iPadOS 26.6.2 and iPhone 17 Pro / iOS 26.5.1 work; iPhone 16 Pro / iOS 27.0.1 still fails. Compatibility and complete button mapping are not guaranteed.
+Reported working: iPhone 15 Pro Max, iPhone 17 Pro, and the tested iPad. Reported not working: iPhone 16, 16 Plus, and 16 Pro. iOS version alone does not explain the results. Compatibility and complete button mapping are not guaranteed.
 
 Use Save Diagnostic Report and submit a test-result issue with your Android host, Apple model/OS and results. Nothing uploads automatically.

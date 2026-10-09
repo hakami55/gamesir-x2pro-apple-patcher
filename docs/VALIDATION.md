@@ -32,3 +32,18 @@ Controller: GameSir X2 Pro Xbox, hardware 2.0, MAIN 129.24, slave 129.3, mode 3.
 - The final APK's install cycle passed end-to-end. Restore's USB protocol passed on the immediately preceding app build; its final check was repeated after a permission-dialog interruption. Restore uses the same protocol engine with the other pinned image.
 - Firmware controls were tested previously on PC/iPad. iPhone 17 Pro success is an owner report. No new Apple-device gameplay test was performed during app validation.
 - Every button mapping on every Apple model is not validated. The iPhone 16 Pro / iOS 27.0.1 failure remains unresolved.
+
+## Updated owner compatibility reports
+
+These are owner reports, separate from the Android app validation above.
+
+| Device | Reported OS | Result |
+| --- | --- | --- |
+| iPhone 15 Pro Max | iOS 26 | Works |
+| iPhone 17 Pro | iOS 26.5.1 | Works |
+| iPhone 16 | iOS 27 | Does not work |
+| iPhone 16 Plus | iOS 26 | Does not work |
+| iPhone 16 Pro | iOS 27.0.1 | Does not work |
+| iPad (`iPad14,1`) | iPadOS 26.6.2 | Works |
+
+The reports suggest a device-specific compatibility pattern. They do not establish that iOS 26 always works, that iOS 27 always fails, or that hardware alone causes the failure. Untested models, including iPhone 16 Pro Max, remain unconfirmed.
