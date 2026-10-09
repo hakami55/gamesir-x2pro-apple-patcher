@@ -8,7 +8,7 @@ Download **GameSir-X2-Pro-Patcher-0.1.0-alpha1.apk** below. Android 8.0+ with US
 - Write + verify for every block; normal-mode verification after restart.
 - Explicit restore option and diagnostic export.
 - 10 automated protocol tests passed. The Android app restored official firmware and reinstalled the patch on an Odin3 without requesting root. The Odin3 itself is rooted; a clean unrooted host has not yet been tested.
-- Report export tested. [Full validation details](docs/VALIDATION.md).
+- Report export tested. [Full validation details](https://github.com/hakami55/gamesir-x2pro-apple-patcher/blob/v0.1.0-alpha1/docs/VALIDATION.md).
 
 **Experimental firmware can leave a controller unusable if an update fails.** Force-stop GameSir and other updaters in Android App info first. Keep the same controller connected throughout and approve USB permission again when prompted. Restore is a known manufacturer MAIN image, not a complete controller backup. Do not use on 144-series controllers or other GameSir models.
 
