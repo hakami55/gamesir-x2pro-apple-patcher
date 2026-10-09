@@ -19,7 +19,7 @@ An experimental Android app to install the Apple compatibility patch or restore 
 | iPhone 15 Pro Max | Works |
 | iPhone 17 Pro | Works |
 | iPhone 16 / 16 Plus / 16 Pro | Does not work |
-| iPad (tested unit) | Works |
+| iPad mini 6 | Works |
 
 Reported tests only; compatibility may vary. iOS version alone does not explain the results.
 

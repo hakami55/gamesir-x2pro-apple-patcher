@@ -44,6 +44,6 @@ These are owner reports, separate from the Android app validation above.
 | iPhone 16 | iOS 27 | Does not work |
 | iPhone 16 Plus | iOS 26 | Does not work |
 | iPhone 16 Pro | iOS 27.0.1 | Does not work |
-| iPad (`iPad14,1`) | iPadOS 26.6.2 | Works |
+| iPad mini 6 (`iPad14,1`) | iPadOS 26.6.2 | Works |
 
 The reports suggest a device-specific compatibility pattern. They do not establish that iOS 26 always works, that iOS 27 always fails, or that hardware alone causes the failure. Untested models, including iPhone 16 Pro Max, remain unconfirmed.
