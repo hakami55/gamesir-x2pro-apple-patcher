@@ -29,7 +29,10 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Build or validation failed' }
         $destination = Join-Path $project 'dist'
         New-Item -ItemType Directory -Force -Path $destination | Out-Null
-        $apk = Join-Path $destination 'GameSir-X2-Pro-Patcher-0.1.0-alpha1.apk'
+        $gradleText = Get-Content -LiteralPath (Join-Path $project 'app\build.gradle') -Raw
+        if ($gradleText -notmatch "versionName '([^']+)'" ) { throw 'Cannot read APK version' }
+        $releaseVersion = $Matches[1]
+        $apk = Join-Path $destination "GameSir-X2-Pro-Patcher-$releaseVersion.apk"
         Copy-Item -LiteralPath (Join-Path $project 'app\build\outputs\apk\release\app-release.apk') -Destination $apk
         $hash = (Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash.ToLowerInvariant()
         "$hash  $(Split-Path -Leaf $apk)" | Set-Content -LiteralPath (Join-Path $destination 'SHA256SUMS.txt') -Encoding ascii

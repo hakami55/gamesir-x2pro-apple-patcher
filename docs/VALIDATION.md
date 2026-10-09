@@ -1,6 +1,17 @@
 # Validation status
 
-Validated on 2026-10-09. Release: **0.1.0-alpha1**.
+## Current release: 0.1.0-alpha2 (2026-10-10)
+
+- Signed release built with the same signing certificate as alpha1, version code 2. It can update the existing installation without clearing its private recovery data.
+- All 17 automated tests passed, zero failures/errors/skips. Seven new tests cover older/current/newer version boundaries, rejection before erase, a simulated older-source official write, legacy recovery restrictions, malformed receipts and exhaustive descriptor-byte mutations.
+- Android lint passed with zero errors. The same build-version and backup-configuration advisory warnings remain.
+- APK SHA-256: `7ad1b356830bb6b429c5e0527bd3375b3befb487f732beb19cd368339d05051f`.
+- APK signature verified; certificate SHA-256: `1a40915c097a9b90b30de7b2c9ecbb140fdb74ffc3ea0fe625aa6c48e5bb0920`.
+- Package inspection confirms Android 8.0+ / target API 35 and no Internet or root permission. Both firmware payload hashes are unchanged.
+- **No physical-controller or Android-host run was performed for alpha2. No older firmware was physically upgraded.** The upgrade is an explicitly labelled risky public-test path; the prior 129.24 test below does not validate older-source compatibility.
+- No live controller was rewritten during this release. The saved working Apple patch was not changed.
+
+## Previous release: 0.1.0-alpha1 (2026-10-09)
 
 ## Build and package
 

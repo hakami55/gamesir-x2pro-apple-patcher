@@ -11,11 +11,13 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UpdateService extends Service {
-    static final String CHECK="check",INSTALL="install",RESTORE="restore";
+    static final String CHECK="check",INSTALL="install",RESTORE="restore",UPGRADE="upgrade";
     static final AtomicBoolean busy=new AtomicBoolean(false);
     static volatile String status="Ready to check your controller";
     static volatile int progress=0;
     static volatile boolean checked=false,patched=false;
+    static volatile boolean patchReady=false,upgradeReady=false;
+    static volatile String profileDetails="Hardware 2.0; slave 129.3; mode 3. Check to read MAIN version.";
     static volatile String deniedDevice="";
     private static final StringBuilder log=new StringBuilder();
     private PowerManager.WakeLock wake;
@@ -28,7 +30,7 @@ public class UpdateService extends Service {
         File persisted=new File(context.getFilesDir(),"last-session.txt");
         if(persisted.exists())try {history=new String(java.nio.file.Files.readAllBytes(persisted.toPath()),StandardCharsets.UTF_8);}
         catch(IOException ignored) { /* Current-process log is still available. */ }
-        return "X2 Pro Patcher 0.1.0-alpha1\nAndroid: "+Build.VERSION.RELEASE+" (API "+Build.VERSION.SDK_INT+")\nDevice: "+Build.MANUFACTURER+" "+Build.MODEL
+        return "X2 Pro Patcher "+BuildConfig.VERSION_NAME+"\nAndroid: "+Build.VERSION.RELEASE+" (API "+Build.VERSION.SDK_INT+")\nDevice: "+Build.MANUFACTURER+" "+Build.MODEL
             +"\nNo device serial, account, IP address or USB path is included.\n\n"+history;
     }
     private void event(String s) {
@@ -52,14 +54,14 @@ public class UpdateService extends Service {
     @Override public int onStartCommand(Intent intent,int flags,int startId) {
         if(intent==null||!busy.compareAndSet(false,true))return START_NOT_STICKY;
         String action=intent.getAction();
-        if(!Arrays.asList(CHECK,INSTALL,RESTORE).contains(action)){busy.set(false);stopSelf();return START_NOT_STICKY;}
+        if(!Arrays.asList(CHECK,INSTALL,RESTORE,UPGRADE).contains(action)){busy.set(false);stopSelf();return START_NOT_STICKY;}
         getSystemService(NotificationManager.class).createNotificationChannel(new NotificationChannel("update","Controller update",NotificationManager.IMPORTANCE_LOW));
         if(Build.VERSION.SDK_INT>=29)startForeground(7,notification("Checking controller…",-1),ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
         else startForeground(7,notification("Checking controller…",-1));
         manager=getSystemService(UsbManager.class);
         wake=getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"x2patcher:update");wake.acquire(10*60*1000L);
         runId=Long.toString(System.currentTimeMillis());logFile=new File(getFilesDir(),"last-session.txt");
-        checked=false;progress=0;
+        checked=false;patchReady=false;upgradeReady=false;progress=0;
         new Thread(()->{
             try { event("Operation: "+action+" / "+runId); run(action); }
             catch(Exception e){status="Stopped: "+(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage());event(status);}
@@ -114,23 +116,45 @@ public class UpdateService extends Service {
         byte[] originalUsb=asset("official-usb.bin"),candidateUsb=asset("patched-usb.bin");
         UsbDevice device=UsbLink.single(manager);permit(device);
         SharedPreferences receipt=getSharedPreferences("recovery",MODE_PRIVATE);
-        boolean isCheck=CHECK.equals(action),wantPatch=INSTALL.equals(action);
+        boolean isCheck=CHECK.equals(action),wantPatch=INSTALL.equals(action),isUpgrade=UPGRADE.equals(action);
+        Protocol.Operation operation=wantPatch?Protocol.Operation.INSTALL:(isUpgrade?Protocol.Operation.UPGRADE:Protocol.Operation.RESTORE);
         boolean startedInDfu;
-        try(UsbLink usb=new UsbLink(manager,device,originalUsb,candidateUsb)) {
+        try(UsbLink usb=new UsbLink(manager,device,originalUsb,candidateUsb,isCheck||isUpgrade)) {
             startedInDfu=usb.dfu;
-            event("USB: "+String.format(Locale.ROOT,"%04x:%04x",device.getVendorId(),device.getProductId())+"; exact identity and updater descriptor accepted");
+            event("USB: "+String.format(Locale.ROOT,"%04x:%04x",device.getVendorId(),device.getProductId())+"; identity, interface and updater descriptor accepted");
             if(usb.dfu) {
-                if(!receipt.getBoolean("pending",false)||!"129.24/2.0/129.3".equals(receipt.getString("profile","")))
+                if(!receipt.getBoolean("pending",false))
                     throw new IOException("Unverified controller in update mode. This app only recovers a controller it checked before updating. No erase command sent.");
-                if(isCheck){checked=true;show("Recovery available for the previously checked controller. Keep the same controller connected.",0);event(status);return;}
+                Protocol.Profile source=Protocol.recoveryProfile(receipt.getString("profile",""),receipt.getString("target",""));
+                if(isCheck){
+                    checked(source,false);
+                    show(source.older()?"Official upgrade recovery available. Keep the same controller connected; the Apple patch remains locked."
+                        :"Recovery available for the previously checked controller. Keep the same controller connected.",0);
+                    event(status);return;
+                }
+                Protocol.requireOperation(source,operation,false,true);
+                if(!receipt.edit().putString("target",wantPatch?"patch":"official").commit())
+                    throw new IOException("Cannot save recovery target. No erase command sent.");
             } else {
-                usb.inspect();patched=usb.patched;checked=true;
-                event("Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: "+(patched?"Apple patch":"official"));
-                if(isCheck){show(patched?"Compatible controller • Apple patch identity detected":"Compatible controller • official firmware identity detected",0);return;}
-                if(wantPatch==usb.patched){show(wantPatch?"Patch identity already present. No firmware written.":"Official firmware identity already present. No firmware written.",0);event(status);return;}
-                if(!receipt.edit().putBoolean("pending",true).putString("profile","129.24/2.0/129.3").putString("target",wantPatch?"patch":"official").commit())
+                Protocol.Profile source=usb.inspect(isCheck||isUpgrade);
+                event("Read MAIN "+source.mainVersion()+", hardware 2.0, slave 129.3, mode 3. USB identity: "+(usb.patched?"Apple patch":"official"));
+                if(!usb.exactDescriptors)event("Older official USB revision differs; all other descriptor bytes match.");
+                if(isCheck){
+                    checked(source,usb.patched);
+                    show(source.older()?"Older MAIN "+source.mainVersion()+" detected. Experimental official upgrade available; patch locked until 129.24 is verified."
+                        :(patched?"Compatible controller • Apple patch identity detected":"Compatible controller • official firmware identity detected"),0);
+                    event(status);return;
+                }
+                // Fresh preflight, not the Activity's cached state, authorizes this operation.
+                Protocol.requireOperation(source,operation,usb.patched,usb.exactDescriptors);
+                if(!isUpgrade && wantPatch==usb.patched){
+                    checked(source,usb.patched);
+                    show(wantPatch?"Patch identity already present. No firmware written.":"Official firmware identity already present. No firmware written.",0);event(status);return;
+                }
+                if(!receipt.edit().putBoolean("pending",true).putString("profile",source.receipt()).putString("target",wantPatch?"patch":"official").commit())
                     throw new IOException("Cannot save the recovery record. No update started.");
-                checked=false;show("Entering update mode. Keep the controller connected.",-1);
+                if(isUpgrade)event("EXPERIMENTAL older-firmware upgrade to official 129.24. No older-device hardware validation or complete backup is available.");
+                show("Entering update mode. Keep the controller connected.",-1);
                 usb.sendHandoff();event("03 01 MAIN handoff sent; no erase yet");
             }
         }
@@ -138,6 +162,7 @@ public class UpdateService extends Service {
         try(UsbLink dfu=new UsbLink(manager,device,originalUsb,candidateUsb)) {
             if(!dfu.dfu)throw new IOException("Not in MAIN update mode. No erase sent.");
             if(!receipt.getBoolean("pending",false))throw new IOException("Recovery record missing. No erase sent.");
+            Protocol.requireOperation(Protocol.recoveryProfile(receipt.getString("profile",""),receipt.getString("target","")),operation,false,true);
             event("Starting MAIN update: "+(wantPatch?Protocol.PATCH_SHA:Protocol.STOCK_SHA));
             show("Writing firmware. Keep the controller connected.",0);
             Protocol.flash(dfu,wantPatch?candidate:original,wantPatch,(done,total)->{
@@ -152,10 +177,16 @@ public class UpdateService extends Service {
         try(UsbLink normal=new UsbLink(manager,device,originalUsb,candidateUsb)) {
             normal.inspect();
             if(normal.dfu||normal.patched!=wantPatch)throw new IOException("Post-update identity mismatch.");
-            patched=wantPatch;checked=true;
+            checked(normal.profile,wantPatch);
         }
         if(!receipt.edit().clear().commit())event("Could not clear recovery record; run Check Controller before the next operation.");
         show(wantPatch?"Patch installed and controller verified. Ready to test on your Apple device."
-            :"Official MAIN 129.24 restored and controller verified.",100);event(status);
+            :(isUpgrade?"Official MAIN 129.24 updated and verified. You may now choose Install Apple Patch."
+                :"Official MAIN 129.24 restored and controller verified."),100);event(status);
+    }
+    private void checked(Protocol.Profile profile,boolean patchIdentity) {
+        patched=patchIdentity;patchReady=profile.atTarget();upgradeReady=profile.older();
+        profileDetails="MAIN "+profile.mainVersion()+" • hardware 2.0 • slave 129.3 • mode 3";
+        checked=true;
     }
 }

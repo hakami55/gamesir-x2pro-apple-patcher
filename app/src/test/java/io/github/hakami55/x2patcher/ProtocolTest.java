@@ -71,4 +71,87 @@ public class ProtocolTest {
         byte[] b=image(false);for(int offset:new int[]{-1,1,33388,65536})assertThrows(IllegalArgumentException.class,()->Protocol.block(b,offset,(byte)0x80));
         assertThrows(IllegalArgumentException.class,()->Protocol.block(b,0,(byte)0x83));
     }
+    byte[] mainVersion(int major,int minor) {byte[] reply=main.clone();reply[12]=(byte)major;reply[11]=(byte)minor;return reply;}
+    @Test public void olderVersionsAreOnlyEligibleForSeparateOfficialUpgrade() throws Exception {
+        for(int[] version:new int[][]{{1,0},{128,255},{129,0},{129,23}}) {
+            byte[] reply=mainVersion(version[0],version[1]);
+            Protocol.Profile p=Protocol.inspectVersions(reply,slave,mode);
+            assertTrue(p.older());assertFalse(p.atTarget());
+            assertEquals(version[0]+"."+version[1],p.mainVersion());
+            Protocol.requireOperation(p,Protocol.Operation.UPGRADE,false,true);
+            for(Protocol.Operation op:new Protocol.Operation[]{Protocol.Operation.INSTALL,Protocol.Operation.RESTORE})
+                assertThrows(IOException.class,()->Protocol.requireOperation(p,op,false,true));
+            assertThrows(IOException.class,()->Protocol.requireOperation(p,Protocol.Operation.UPGRADE,true,true));
+            assertThrows(IOException.class,()->Protocol.validateVersions(reply,slave,mode));
+        }
+    }
+    @Test public void currentVersionCannotBeSentDownTheOlderUpgradePath() throws Exception {
+        Protocol.Profile p=Protocol.inspectVersions(main,slave,mode);
+        assertTrue(p.atTarget());assertFalse(p.older());
+        assertThrows(IOException.class,()->Protocol.requireOperation(p,Protocol.Operation.UPGRADE,false,true));
+        for(Protocol.Operation op:new Protocol.Operation[]{Protocol.Operation.INSTALL,Protocol.Operation.RESTORE}) {
+            Protocol.requireOperation(p,op,false,true);
+            assertThrows(IOException.class,()->Protocol.requireOperation(p,op,false,false));
+        }
+    }
+    @Test public void invalidNewerAndOtherSeriesNeverAuthorizeErase() throws Exception {
+        for(int[] version:new int[][]{{0,0},{129,25},{130,0},{144,1},{255,255}}) {
+            Loader l=new Loader();
+            assertThrows(IOException.class,()->{
+                Protocol.Profile p=Protocol.inspectVersions(mainVersion(version[0],version[1]),slave,mode);
+                Protocol.requireOperation(p,Protocol.Operation.UPGRADE,false,true);
+                Protocol.flash(l,image(false),false,(n,t)->{});
+            });
+            assertEquals(0,l.commands);
+        }
+        byte[] older=mainVersion(128,10);
+        for(int offset:new int[]{0,7,8}){byte[] bad=older.clone();bad[offset]^=1;assertThrows(IOException.class,()->Protocol.inspectVersions(bad,slave,mode));}
+        for(int offset=0;offset<4;offset++){byte[] bad=slave.clone();bad[offset]^=1;assertThrows(IOException.class,()->Protocol.inspectVersions(older,bad,mode));}
+        assertThrows(IOException.class,()->Protocol.inspectVersions(older,slave,new byte[]{9,7}));
+        assertThrows(IOException.class,()->Protocol.inspectVersions(new byte[19],slave,mode));
+    }
+    @Test public void olderPreflightThenOfficialWriteUsesOnlyPinnedStockImage() throws Exception {
+        Protocol.Profile p=Protocol.inspectVersions(mainVersion(128,12),slave,mode);
+        Loader l=new Loader();Protocol.requireOperation(p,Protocol.Operation.UPGRADE,false,true);
+        Protocol.flash(l,image(false),false,(n,t)->{});
+        assertEquals(1116,l.commands);assertEquals(33388,l.verified);assertTrue(l.finished);
+        assertArrayEquals(image(false),l.memory);
+        // A still-old or malformed restart reply must not unlock the patch.
+        assertThrows(IOException.class,()->Protocol.validateVersions(mainVersion(128,12),slave,mode));
+        assertEquals(3,Protocol.validateVersions(main,slave,mode));
+    }
+    @Test public void legacyRecoveryCannotInstallPatchBeforeOfficialUpgrade() throws Exception {
+        Protocol.Profile p=Protocol.recoveryProfile("128.12/2.0/129.3","official");
+        assertTrue(p.older());Protocol.requireOperation(p,Protocol.Operation.UPGRADE,false,true);
+        assertThrows(IOException.class,()->Protocol.requireOperation(p,Protocol.Operation.INSTALL,false,true));
+        assertThrows(IOException.class,()->Protocol.requireOperation(p,Protocol.Operation.RESTORE,false,true));
+        assertThrows(IOException.class,()->Protocol.recoveryProfile("128.12/2.0/129.3","patch"));
+        for(String target:new String[]{"patch","official"}) {
+            Protocol.Profile oldReceipt=Protocol.recoveryProfile("129.24/2.0/129.3",target);
+            assertTrue(oldReceipt.atTarget()); // alpha1 recovery receipts remain compatible.
+        }
+    }
+    @Test public void malformedRecoveryReceiptsAndNewerProfilesAreRejected() throws Exception {
+        for(String source:new String[]{null,"","144.1/2.0/129.3","129.25/2.0/129.3","0.1/2.0/129.3",
+                "128.256/2.0/129.3","999.1/2.0/129.3","0128.1/2.0/129.3","128.01/2.0/129.3",
+                "128.1/1.0/129.3","128.1/2.0/128.3","128.1/2.0/129.3/extra"})
+            assertThrows(IOException.class,()->Protocol.recoveryProfile(source,"official"));
+        for(String target:new String[]{null,"","upgrade","arbitrary"})
+            assertThrows(IOException.class,()->Protocol.recoveryProfile("128.1/2.0/129.3",target));
+    }
+    @Test public void legacyDescriptorAllowanceOnlyIgnoresTwoUsbRevisionBytes() throws Exception {
+        byte[] expected=Files.readAllBytes(Paths.get("src/main/assets/official-usb.bin"));
+        assertTrue(Protocol.validateNormalUsb(expected,expected,false));
+        byte[] revision=expected.clone();revision[12]^=1;revision[13]^=1;
+        assertFalse(Protocol.validateNormalUsb(revision,expected,true));
+        assertThrows(IOException.class,()->Protocol.validateNormalUsb(revision,expected,false));
+        for(int offset=0;offset<expected.length;offset++)if(offset!=12&&offset!=13) {
+            byte[] different=expected.clone();different[offset]^=1;
+            assertThrows(IOException.class,()->Protocol.validateNormalUsb(different,expected,true));
+        }
+        assertThrows(IOException.class,()->Protocol.validateNormalUsb(null,expected,true));
+        assertThrows(IOException.class,()->Protocol.validateNormalUsb(null,null,true));
+        assertThrows(IOException.class,()->Protocol.validateNormalUsb(new byte[17],new byte[17],true));
+        assertThrows(IOException.class,()->Protocol.validateNormalUsb(Arrays.copyOf(expected,expected.length-1),expected,true));
+    }
 }

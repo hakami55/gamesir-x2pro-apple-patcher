@@ -15,6 +15,16 @@ public final class Protocol {
 
     public interface Transport { byte[] exchange(byte[] command, int timeoutMillis) throws Exception; }
     public interface Progress { void update(int verifiedBytes, int totalBytes) throws Exception; }
+    public enum Operation { INSTALL, RESTORE, UPGRADE }
+
+    public static final class Profile {
+        public final int mainMajor, mainMinor;
+        private Profile(int major,int minor) {mainMajor=major;mainMinor=minor;}
+        public boolean atTarget() {return mainMajor==129 && mainMinor==24;}
+        public boolean older() {return mainMajor<129 || (mainMajor==129 && mainMinor<24);}
+        public String mainVersion() {return mainMajor+"."+mainMinor;}
+        public String receipt() {return mainVersion()+"/2.0/129.3";}
+    }
 
     public static String sha(byte[] data) {
         try { return hex(MessageDigest.getInstance("SHA-256").digest(data)); }
@@ -47,14 +57,58 @@ public final class Protocol {
         if(count!=29) throw new IOException("Patch difference count is not 29.");
     }
     public static int validateVersions(byte[] main, byte[] slave, byte[] mode) throws IOException {
-        if(main.length<20 || (main[0]&255)!=0xc9 || (main[12]&255)!=129 || main[11]!=24
-                || main[8]!=2 || main[7]!=0)
-            throw new IOException("Unsupported controller: requires MAIN 129.24 and hardware 2.0. No update started.");
+        Profile profile=inspectVersions(main,slave,mode);
+        if(!profile.atTarget())
+            throw new IOException("Requires MAIN 129.24. Check the controller and use the separate official upgrade for eligible older firmware. No update started.");
+        return 3;
+    }
+    public static Profile inspectVersions(byte[] main, byte[] slave, byte[] mode) throws IOException {
+        if(main.length<20 || (main[0]&255)!=0xc9 || main[8]!=2 || main[7]!=0)
+            throw new IOException("Unsupported controller: requires hardware 2.0 and a valid MAIN reply. No update started.");
         if(slave.length<4 || slave[0]!=0x20 || (slave[1]&255)!=0x9f || (slave[2]&255)!=129 || slave[3]!=3)
             throw new IOException("Unsupported slave firmware: requires 129.3. No update started.");
         if(mode.length<2 || mode[0]!=9 || mode[1]!=3)
             throw new IOException("This release requires controller mode 3. No mode changes were sent.");
-        return mode[1];
+        int major=main[12]&255,minor=main[11]&255;
+        if(major==0 || major>129 || (major==129 && minor>24))
+            throw new IOException("Unsupported MAIN "+major+"."+minor+". This app does not downgrade newer or different firmware series.");
+        return new Profile(major,minor);
+    }
+    public static void requireOperation(Profile profile, Operation operation, boolean patched, boolean exactUsb) throws IOException {
+        if(operation==Operation.UPGRADE) {
+            if(!profile.older() || patched)
+                throw new IOException("Official upgrade is only for eligible older firmware with the original GameSir identity.");
+        } else if(!profile.atTarget() || !exactUsb) {
+            throw new IOException("Install and Restore require the exact MAIN 129.24 profile. Upgrade older firmware first; no patch or erase command sent.");
+        }
+    }
+    public static Profile recoveryProfile(String source,String target) throws IOException {
+        if(source==null || !source.matches("[1-9][0-9]{0,2}\\.[0-9]{1,3}/2\\.0/129\\.3")
+                || !("patch".equals(target)||"official".equals(target)))
+            throw new IOException("Unverified recovery record. No erase command sent.");
+        String version=source.substring(0,source.indexOf('/'));
+        String[] parts=version.split("\\.");
+        int major=Integer.parseInt(parts[0]),minor=Integer.parseInt(parts[1]);
+        if(minor>255)throw new IOException("Invalid recovery version. No erase command sent.");
+        byte[] main=new byte[20];main[0]=(byte)0xc9;main[8]=2;main[12]=(byte)major;main[11]=(byte)minor;
+        // Reject integer wrapping and noncanonical records before reconstructing packets.
+        if(major>129 || !source.equals(major+"."+minor+"/2.0/129.3"))
+            throw new IOException("Invalid recovery profile. No erase command sent.");
+        Profile profile=inspectVersions(main,new byte[]{0x20,(byte)0x9f,(byte)129,3},new byte[]{9,3});
+        if(profile.older() && !"official".equals(target))
+            throw new IOException("Older-firmware recovery must finish the official upgrade before installing a patch.");
+        return profile;
+    }
+    /** Older official firmware may use another bcdDevice; every other descriptor byte must match. */
+    public static boolean validateNormalUsb(byte[] raw,byte[] expected,boolean allowOlderOfficial) throws IOException {
+        if(raw==null || expected==null || raw.length<18 || expected.length<18)
+            throw new IOException("USB descriptors unavailable. No command sent.");
+        if(Arrays.equals(raw,expected))return true;
+        if(allowOlderOfficial && raw!=null && expected!=null && raw.length==expected.length && raw.length>=18) {
+            byte[] normalized=raw.clone();normalized[12]=expected[12];normalized[13]=expected[13];
+            if(Arrays.equals(normalized,expected))return false;
+        }
+        throw new IOException("USB configuration differs from the supported controller. No command sent.");
     }
     public static byte[] block(byte[] image,int offset,byte opcode) {
         if(image.length!=SIZE || offset<0 || offset>=SIZE || offset%BLOCK!=0 || (opcode!=(byte)0x80 && opcode!=(byte)0x82))

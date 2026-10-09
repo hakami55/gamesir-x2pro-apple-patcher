@@ -19,7 +19,7 @@ public class MainActivity extends Activity {
     private final Handler handler=new Handler(Looper.getMainLooper());
     private TextView status,details;
     private ProgressBar progress;
-    private Button check,install,restore,save;
+    private Button check,upgrade,install,restore,save;
     private EditText testDevice,testOs;
     private Spinner testResult;
     private UsbManager manager;
@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(Color.rgb(244,247,249));
         LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(dp(20),dp(20),dp(20),dp(24));scroll.addView(root);
-        TextView badge=text("COMMUNITY PREVIEW  /  0.1.0-alpha1",12,teal,true);root.addView(badge);
+        TextView badge=text("COMMUNITY PREVIEW  /  "+BuildConfig.VERSION_NAME,12,teal,true);root.addView(badge);
         root.addView(text("X2 Pro Patcher",30,navy,true));
         root.addView(text("Apple compatibility patch for the GameSir X2 Pro",16,muted,false));space(root,18);
 
@@ -47,16 +47,19 @@ public class MainActivity extends Activity {
         status=text(UpdateService.status,18,navy,true);connection.addView(status);
         progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);connection.addView(progress,new LinearLayout.LayoutParams(-1,dp(12)));
         check=button("Check Controller",connection,true);check.setOnClickListener(v->request(UpdateService.CHECK));
-        details=text("Requires MAIN 129.24 • hardware 2.0 • slave 129.3 • mode 3",13,muted,false);connection.addView(details);
+        details=text(UpdateService.profileDetails,13,muted,false);connection.addView(details);
 
         LinearLayout update=card(root);update.addView(text("2  INSTALL OR RESTORE",12,teal,true));
         update.addView(text("Experimental firmware. A failed update can leave the controller unusable. The restore option writes official MAIN 129.24; it is not a full backup of your controller.",14,navy,false));
+        upgrade=button("Update to Official 129.24 (Risky)",update,false);
+        upgrade.setOnClickListener(v->confirm(UpdateService.UPGRADE));
+        update.addView(text("Older MAIN firmware: update to official 129.24 first, then install the patch. This upgrade has not been tested on an older physical controller.",13,muted,false));
         install=button("Install Apple Patch",update,true);restore=button("Restore Official Firmware",update,false);
         install.setOnClickListener(v->confirm(UpdateService.INSTALL));restore.setOnClickListener(v->confirm(UpdateService.RESTORE));
         update.addView(text("Keep the app open and allow USB access again when update mode appears. Only the main controller firmware is updated.",13,muted,false));
 
         LinearLayout compatibility=card(root);compatibility.addView(text("WHAT HAS BEEN TESTED",12,teal,true));
-        compatibility.addView(text("Patch reported working: iPadOS 26.6.2; iPhone 17 Pro / iOS 26.5.1.\nStill failing: iPhone 16 Pro / iOS 27.0.1.\nThese are individual tests, not a guarantee for every device or button mapping.",14,navy,false));
+        compatibility.addView(text("Reported working: iPhone 15 Pro Max, iPhone 17 Pro, iPad mini 6.\nNot working: iPhone 16, 16 Plus, 16 Pro.\nIndividual reports; compatibility and button mapping may vary.",14,navy,false));
 
         LinearLayout feedback=card(root);feedback.addView(text("3  SHARE YOUR TEST RESULT",12,teal,true));
         testDevice=new EditText(this);testDevice.setSingleLine(true);testDevice.setHint("Apple device model (optional)");testDevice.setTextSize(14);feedback.addView(testDevice);
@@ -77,9 +80,15 @@ public class MainActivity extends Activity {
     private void space(LinearLayout root,int amount){Space s=new Space(this);root.addView(s,new LinearLayout.LayoutParams(1,dp(amount)));}
     private LinearLayout card(LinearLayout root){LinearLayout c=new LinearLayout(this);c.setOrientation(LinearLayout.VERTICAL);c.setPadding(dp(16),dp(13),dp(16),dp(14));GradientDrawable b=new GradientDrawable();b.setColor(Color.WHITE);b.setCornerRadius(dp(14));b.setStroke(dp(1),Color.rgb(219,227,232));c.setBackground(b);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(14);root.addView(c,p);return c;}
     private Button button(String s,LinearLayout root,boolean filled){Button b=new Button(this);b.setText(s);b.setAllCaps(false);b.setTextSize(16);b.setMinHeight(dp(52));b.setTextColor(filled?Color.WHITE:navy);GradientDrawable d=new GradientDrawable();d.setColor(filled?teal:Color.rgb(233,241,244));d.setCornerRadius(dp(8));b.setBackground(d);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(52));p.topMargin=dp(9);p.bottomMargin=dp(5);root.addView(b,p);return b;}
-    private void render(){boolean busy=UpdateService.busy.get();status.setText(UpdateService.status);progress.setIndeterminate(busy&&UpdateService.progress<0);progress.setProgress(Math.max(0,UpdateService.progress));check.setEnabled(!busy&&pendingAction==null);install.setEnabled(!busy&&pendingAction==null&&UpdateService.checked);restore.setEnabled(!busy&&pendingAction==null&&UpdateService.checked);save.setEnabled(!busy);getWindow().setFlags(busy?WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON:0,WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
+    private void render(){boolean busy=UpdateService.busy.get();status.setText(UpdateService.status);details.setText(UpdateService.profileDetails);progress.setIndeterminate(busy&&UpdateService.progress<0);progress.setProgress(Math.max(0,UpdateService.progress));check.setEnabled(!busy&&pendingAction==null);boolean ready=!busy&&pendingAction==null&&UpdateService.checked;upgrade.setEnabled(ready&&UpdateService.upgradeReady);install.setEnabled(ready&&UpdateService.patchReady);restore.setEnabled(ready&&UpdateService.patchReady);save.setEnabled(!busy);getWindow().setFlags(busy?WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON:0,WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
     private void confirm(String action){
         if(UpdateService.busy.get())return;
+        if(UpdateService.UPGRADE.equals(action)) {
+            new AlertDialog.Builder(this).setTitle("Risky upgrade to official 129.24?")
+                .setMessage("This writes official MAIN 129.24 over your older firmware. Older-firmware upgrades have not been tested on a physical controller. A different bootloader or configuration, or an interrupted update, could leave the controller unusable. Recovery is not guaranteed and may require a hardware programmer.\n\nThe app checks model, hardware 2.0, slave 129.3, mode 3 and the updater interface. These checks do not prove that every older firmware is compatible. There is no backup or restore to your previous version.\n\nKeep this same controller connected. Only after 129.24 is verified will the separate Apple patch option unlock.")
+                .setNegativeButton("Cancel",null).setPositiveButton("Accept Risk & Update",(d,w)->request(action)).show();
+            return;
+        }
         new AlertDialog.Builder(this).setTitle(action.equals(UpdateService.INSTALL)?"Install experimental Apple patch?":"Restore official MAIN firmware?")
             .setMessage("This writes the controller's firmware. Keep this same controller connected until verification finishes. An interrupted or failed update may need recovery or a hardware programmer.\n\nOnly the checked 129.24 / hardware 2.0 version is supported. iPhone compatibility is not guaranteed.")
             .setNegativeButton("Cancel",null).setPositiveButton("Continue",(d,w)->request(action)).show();

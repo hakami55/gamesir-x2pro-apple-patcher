@@ -12,6 +12,8 @@ final class UsbLink implements AutoCloseable, Protocol.Transport {
     final UsbDevice device;
     final boolean dfu, patched;
     final String serial;
+    boolean exactDescriptors;
+    Protocol.Profile profile;
     private final UsbDeviceConnection connection;
     private final UsbInterface iface;
     private final UsbEndpoint input, output;
@@ -31,6 +33,9 @@ final class UsbLink implements AutoCloseable, Protocol.Transport {
         return devices.get(0);
     }
     UsbLink(UsbManager manager, UsbDevice d, byte[] stockDescriptor, byte[] patchDescriptor) throws Exception {
+        this(manager,d,stockDescriptor,patchDescriptor,false);
+    }
+    UsbLink(UsbManager manager, UsbDevice d, byte[] stockDescriptor, byte[] patchDescriptor,boolean allowOlderOfficial) throws Exception {
         device=d; dfu=d.getVendorId()==0x05ac; patched=d.getVendorId()==0x04b4;
         if(!candidate(d)||!manager.hasPermission(d)) throw new IOException("USB permission or target identity is missing.");
         serial=d.getSerialNumber();
@@ -44,8 +49,7 @@ final class UsbLink implements AutoCloseable, Protocol.Transport {
             byte[] raw=connection.getRawDescriptors();
             if(raw==null||raw.length<18) throw new IOException("USB descriptors unavailable.");
             if(dfu && (raw[12]!=0 || raw[13]!=1)) throw new IOException("Unexpected MAIN DFU USB revision.");
-            if(!dfu && !Arrays.equals(raw,patched?patchDescriptor:stockDescriptor))
-                throw new IOException("USB configuration differs from the supported controller. No command sent.");
+            if(!dfu)exactDescriptors=Protocol.validateNormalUsb(raw,patched?patchDescriptor:stockDescriptor,allowOlderOfficial&&!patched);
             if(d.getInterfaceCount()!=(dfu?1:2)) throw new IOException("Unexpected USB interface count.");
             for(int i=0;i<d.getInterfaceCount();i++) {
                 UsbInterface f=d.getInterface(i);
@@ -111,9 +115,17 @@ final class UsbLink implements AutoCloseable, Protocol.Transport {
         }
     }
     int inspect() throws Exception {
+        inspect(false);return 3;
+    }
+    Protocol.Profile inspect(boolean allowOlder) throws Exception {
         if(dfu) throw new IOException("Version checks require normal gamepad mode.");
-        return Protocol.validateVersions(exchange(new byte[]{1,1},2000),
+        profile=Protocol.inspectVersions(exchange(new byte[]{1,1},2000),
             exchange(new byte[]{0x20,(byte)0x9f},2000),exchange(new byte[]{9,0},2000));
+        if((!allowOlder || patched) && !profile.atTarget())
+            throw new IOException("Requires MAIN 129.24. Upgrade eligible older firmware first.");
+        if(profile.atTarget() && !exactDescriptors)
+            throw new IOException("MAIN 129.24 USB descriptors do not match the supported firmware.");
+        return profile;
     }
     @Override public void close() { if(claimed){connection.releaseInterface(iface);claimed=false;}connection.close(); }
 }
