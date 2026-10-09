@@ -1,0 +1,182 @@
+﻿{
+    "baseTransportSha256":  "5ff4c283062edb95c63ff1fa8f0cb2a90568089cc464ce08b803558c6b76567a",
+    "patchedTransportSha256":  "f48477d9abb2a1db369b66103b46533060bf01d0b0c7262758cb7b5756e7da18",
+    "length":  33388,
+    "encoding":  "transportByte ^= decodedBefore ^ decodedAfter",
+    "changes":  [
+                    {
+                        "offset":  25768,
+                        "hex":  "0x64a8",
+                        "before":  16,
+                        "after":  20
+                    },
+                    {
+                        "offset":  25774,
+                        "hex":  "0x64ae",
+                        "before":  16,
+                        "after":  20
+                    },
+                    {
+                        "offset":  25777,
+                        "hex":  "0x64b1",
+                        "before":  6,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25778,
+                        "hex":  "0x64b2",
+                        "before":  2,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25779,
+                        "hex":  "0x64b3",
+                        "before":  255,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25780,
+                        "hex":  "0x64b4",
+                        "before":  9,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25781,
+                        "hex":  "0x64b5",
+                        "before":  1,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25782,
+                        "hex":  "0x64b6",
+                        "before":  161,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25783,
+                        "hex":  "0x64b7",
+                        "before":  1,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25784,
+                        "hex":  "0x64b8",
+                        "before":  21,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25785,
+                        "hex":  "0x64b9",
+                        "before":  0,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25786,
+                        "hex":  "0x64ba",
+                        "before":  37,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25787,
+                        "hex":  "0x64bb",
+                        "before":  1,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25788,
+                        "hex":  "0x64bc",
+                        "before":  9,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25789,
+                        "hex":  "0x64bd",
+                        "before":  4,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25790,
+                        "hex":  "0x64be",
+                        "before":  117,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25791,
+                        "hex":  "0x64bf",
+                        "before":  1,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25792,
+                        "hex":  "0x64c0",
+                        "before":  149,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25793,
+                        "hex":  "0x64c1",
+                        "before":  1,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25794,
+                        "hex":  "0x64c2",
+                        "before":  129,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25795,
+                        "hex":  "0x64c3",
+                        "before":  2,
+                        "after":  117
+                    },
+                    {
+                        "offset":  25796,
+                        "hex":  "0x64c4",
+                        "before":  192,
+                        "after":  1
+                    },
+                    {
+                        "offset":  25800,
+                        "hex":  "0x64c8",
+                        "before":  7,
+                        "after":  4
+                    },
+                    {
+                        "offset":  25910,
+                        "hex":  "0x6536",
+                        "before":  3,
+                        "after":  0
+                    },
+                    {
+                        "offset":  25914,
+                        "hex":  "0x653a",
+                        "before":  55,
+                        "after":  180
+                    },
+                    {
+                        "offset":  25915,
+                        "hex":  "0x653b",
+                        "before":  53,
+                        "after":  4
+                    },
+                    {
+                        "offset":  25916,
+                        "hex":  "0x653c",
+                        "before":  2,
+                        "after":  18
+                    },
+                    {
+                        "offset":  25917,
+                        "hex":  "0x653d",
+                        "before":  1,
+                        "after":  36
+                    },
+                    {
+                        "offset":  25919,
+                        "hex":  "0x653f",
+                        "before":  1,
+                        "after":  5
+                    }
+                ]
+}

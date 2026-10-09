@@ -1,0 +1,69 @@
+X2 Pro Patcher 0.1.0-alpha1
+Android: 15 (API 35)
+Device: ayn Odin3
+No device serial, account, IP address or USB path is included.
+
+2026-10-09T17:54:24Z Operation: check / 1791568463998
+2026-10-09T17:54:24Z USB: 04b4:2412; exact identity and updater descriptor accepted
+2026-10-09T17:54:24Z Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: Apple patch
+2026-10-09T17:55:24Z Operation: restore / 1791568524302
+2026-10-09T17:55:24Z USB: 04b4:2412; exact identity and updater descriptor accepted
+2026-10-09T17:55:24Z Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: Apple patch
+2026-10-09T17:55:24Z 03 01 MAIN handoff sent; no erase yet
+2026-10-09T17:55:45Z Starting MAIN update: 5ff4c283062edb95c63ff1fa8f0cb2a90568089cc464ce08b803558c6b76567a
+2026-10-09T17:55:46Z Verified 1920 / 33388
+2026-10-09T17:55:46Z Verified 3840 / 33388
+2026-10-09T17:55:47Z Verified 5760 / 33388
+2026-10-09T17:55:48Z Verified 7680 / 33388
+2026-10-09T17:55:48Z Verified 9600 / 33388
+2026-10-09T17:55:49Z Verified 11520 / 33388
+2026-10-09T17:55:50Z Verified 13440 / 33388
+2026-10-09T17:55:50Z Verified 15360 / 33388
+2026-10-09T17:55:51Z Verified 17280 / 33388
+2026-10-09T17:55:52Z Verified 19200 / 33388
+2026-10-09T17:55:52Z Verified 21120 / 33388
+2026-10-09T17:55:53Z Verified 23040 / 33388
+2026-10-09T17:55:54Z Verified 24960 / 33388
+2026-10-09T17:55:54Z Verified 26880 / 33388
+2026-10-09T17:55:55Z Verified 28800 / 33388
+2026-10-09T17:55:56Z Verified 30720 / 33388
+2026-10-09T17:55:56Z Verified 32640 / 33388
+2026-10-09T17:55:56Z Verified 33388 / 33388
+2026-10-09T17:55:56Z 557 blocks verified; finish acknowledged
+2026-10-09T17:57:31Z Stopped: USB permission was not granted. Reopen the app and retry with the same controller.
+2026-10-09T17:58:34Z Operation: check / 1791568714869
+2026-10-09T17:58:34Z USB: 3537:0102; exact identity and updater descriptor accepted
+2026-10-09T17:58:34Z Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: official
+2026-10-09T18:01:00Z Operation: check / 1791568860974
+2026-10-09T18:01:00Z USB: 3537:0102; exact identity and updater descriptor accepted
+2026-10-09T18:01:01Z Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: official
+2026-10-09T18:01:41Z Operation: install / 1791568901468
+2026-10-09T18:01:41Z USB: 3537:0102; exact identity and updater descriptor accepted
+2026-10-09T18:01:41Z Verified MAIN 129.24, hardware 2.0, slave 129.3, mode 3. USB identity: official
+2026-10-09T18:01:41Z 03 01 MAIN handoff sent; no erase yet
+2026-10-09T18:02:01Z Starting MAIN update: f48477d9abb2a1db369b66103b46533060bf01d0b0c7262758cb7b5756e7da18
+2026-10-09T18:02:01Z Verified 1920 / 33388
+2026-10-09T18:02:02Z Verified 3840 / 33388
+2026-10-09T18:02:03Z Verified 5760 / 33388
+2026-10-09T18:02:03Z Verified 7680 / 33388
+2026-10-09T18:02:04Z Verified 9600 / 33388
+2026-10-09T18:02:05Z Verified 11520 / 33388
+2026-10-09T18:02:05Z Verified 13440 / 33388
+2026-10-09T18:02:06Z Verified 15360 / 33388
+2026-10-09T18:02:07Z Verified 17280 / 33388
+2026-10-09T18:02:07Z Verified 19200 / 33388
+2026-10-09T18:02:08Z Verified 21120 / 33388
+2026-10-09T18:02:08Z Verified 23040 / 33388
+2026-10-09T18:02:09Z Verified 24960 / 33388
+2026-10-09T18:02:10Z Verified 26880 / 33388
+2026-10-09T18:02:10Z Verified 28800 / 33388
+2026-10-09T18:02:11Z Verified 30720 / 33388
+2026-10-09T18:02:12Z Verified 32640 / 33388
+2026-10-09T18:02:12Z Verified 33388 / 33388
+2026-10-09T18:02:12Z 557 blocks verified; finish acknowledged
+2026-10-09T18:02:56Z Patch installed and controller verified. Ready to test on your Apple device.
+
+Tester-entered result
+Apple model:
+OS:
+Result: Not tested yet

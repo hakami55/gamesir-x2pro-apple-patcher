@@ -1,0 +1,39 @@
+name: Controller test result
+description: Report an experimental patch result or updater problem
+title: "[Test] Device model / OS"
+body:
+  - type: input
+    id: app_version
+    attributes:
+      label: Patcher version
+      placeholder: 0.1.0-alpha1
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android host model and version
+    validations:
+      required: true
+  - type: input
+    id: apple
+    attributes:
+      label: Apple model and exact iOS / iPadOS version
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Controls work
+        - Some controls work
+        - No controller detected on Apple device
+        - App refused the controller before updating
+        - Update interrupted or failed
+        - Official restore succeeded
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details and diagnostic report
+      description: Attach the saved report after reviewing it. Include which buttons, sticks and triggers work. Do not post personal information or unrelated device logs.
